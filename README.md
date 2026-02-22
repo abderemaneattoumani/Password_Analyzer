@@ -1,6 +1,6 @@
 # 🔐 Analyseur de Mots de Passe par IA
 
-![Python](https://img.shields.io/badge/Python-3.11-blue?logo=python)
+![Python](https://img.shields.io/badge/Python-3.13.2-blue?logo=python)
 ![ML](https://img.shields.io/badge/Machine%20Learning-Gradient%20Boosting-orange)
 ![Dataset](https://img.shields.io/badge/Dataset-50K%20passwords-red)
 ![Accuracy](https://img.shields.io/badge/Accuracy-66.94%25-green)
@@ -69,7 +69,7 @@ python src/report_generator.py
 
 ## ☁️ Démonstration interactive
 
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](LIEN_COLAB_ICI)
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/abderemaneattoumani/Password_Analyzer/blob/main/notebooks/04_demo_interactive.ipynb)
 
 Le notebook Google Colab permet de tester l'analyseur 
 sans aucune installation locale.
