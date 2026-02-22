@@ -1,0 +1,822 @@
+<!DOCTYPE html>
+<html class="dark" lang="fr">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Password Analyzer AI</title>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script>
+tailwind.config = {
+  darkMode: "class",
+  theme: {
+    extend: {
+      colors: {
+        "primary": "#00d4ff",
+        "primary-dark": "#009ac9",
+        "background-dark": "#0a0e1a",
+      },
+      fontFamily: {
+        "display": ["Inter", "sans-serif"],
+        "mono": ["JetBrains Mono", "monospace"],
+      },
+      boxShadow: {
+        'neon': '0 0 10px rgba(0,212,255,0.5), 0 0 20px rgba(0,212,255,0.3)',
+        'neon-input': '0 0 0 2px rgba(0,212,255,0.2), 0 0 15px rgba(0,212,255,0.4)',
+      }
+    }
+  }
+}
+</script>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    background-color: #0a0e1a;
+    color: #e2e8f0;
+    overflow-x: hidden;
+    font-family: 'Inter', sans-serif;
+  }
+  .glass-panel {
+    background: rgba(16, 23, 41, 0.5);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255,255,255,0.08);
+    box-shadow: 0 4px 30px rgba(0,0,0,0.2);
+  }
+  .text-gradient {
+    background: linear-gradient(135deg, #00d4ff 0%, #3b82f6 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .animated-bg {
+    background-image: radial-gradient(#1e293b 1px, transparent 1px);
+    background-size: 40px 40px;
+    opacity: 0.25;
+  }
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: #0a0e1a; }
+  ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 4px; }
+  ::-webkit-scrollbar-thumb:hover { background: #334155; }
+
+  /* Strength bar segments */
+  .seg { flex: 1; height: 100%; border-radius: 3px; transition: all 0.35s ease; background: #1e293b; }
+  .seg.active-0 { background: #ef4444; box-shadow: 0 0 8px rgba(239,68,68,0.7); }
+  .seg.active-1 { background: #f97316; box-shadow: 0 0 8px rgba(249,115,22,0.7); }
+  .seg.active-2 { background: #eab308; box-shadow: 0 0 8px rgba(234,179,8,0.7); }
+  .seg.active-3 { background: #22c55e; box-shadow: 0 0 8px rgba(34,197,94,0.7); }
+  .seg.active-4 { background: #00d4ff; box-shadow: 0 0 8px rgba(0,212,255,0.7); }
+
+  /* Circular gauge */
+  .gauge-circle {
+    transition: stroke-dashoffset 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  /* Stat card hover */
+  .stat-card {
+    transition: border-color 0.3s, box-shadow 0.3s, transform 0.2s;
+  }
+  .stat-card:hover {
+    border-color: rgba(0,212,255,0.4) !important;
+    box-shadow: 0 0 15px rgba(0,212,255,0.15);
+    transform: translateY(-2px);
+  }
+
+  /* Recommendation items */
+  .reco-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    font-size: 0.875rem;
+    color: #cbd5e1;
+    padding: 6px 0;
+    animation: fadeSlideIn 0.3s ease;
+  }
+  @keyframes fadeSlideIn {
+    from { opacity: 0; transform: translateX(-8px); }
+    to   { opacity: 1; transform: translateX(0); }
+  }
+
+  /* Copy button feedback */
+  .copy-btn { transition: all 0.3s; }
+  .copy-btn.copied { background: rgba(34,197,94,0.15); border-color: rgba(34,197,94,0.6); color: #4ade80; }
+
+  /* Cursor blink */
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+  .cursor { animation: blink 1s infinite; }
+
+  /* Particles canvas */
+  #particles-canvas {
+    position: fixed; top: 0; left: 0;
+    width: 100%; height: 100%;
+    pointer-events: none; z-index: 0;
+  }
+
+  /* Fade-in sections */
+  .fade-in { opacity: 0; transform: translateY(20px); transition: opacity 0.6s ease, transform 0.6s ease; }
+  .fade-in.visible { opacity: 1; transform: translateY(0); }
+
+  /* Badge pill */
+  .badge { display:inline-flex; align-items:center; gap:6px; padding:4px 12px; border-radius:9999px; font-size:0.75rem; font-weight:600; border:1px solid; }
+  .badge-red    { background:rgba(239,68,68,0.12);  border-color:rgba(239,68,68,0.35);  color:#f87171; }
+  .badge-orange { background:rgba(249,115,22,0.12); border-color:rgba(249,115,22,0.35); color:#fb923c; }
+  .badge-yellow { background:rgba(234,179,8,0.12);  border-color:rgba(234,179,8,0.35);  color:#fbbf24; }
+  .badge-green  { background:rgba(34,197,94,0.12);  border-color:rgba(34,197,94,0.35);  color:#4ade80; }
+  .badge-cyan   { background:rgba(0,212,255,0.12);  border-color:rgba(0,212,255,0.35);  color:#00d4ff; }
+
+  /* Input focus ring */
+  #password-input:focus {
+    outline: none;
+    border-color: #00d4ff;
+    box-shadow: 0 0 0 2px rgba(0,212,255,0.2), 0 0 15px rgba(0,212,255,0.3);
+  }
+
+  /* Animated typing text */
+  #crack-time-value {
+    transition: opacity 0.2s;
+  }
+</style>
+</head>
+<body class="font-display antialiased min-h-screen flex flex-col relative selection:bg-primary selection:text-black">
+
+<!-- Particles Background -->
+<canvas id="particles-canvas"></canvas>
+
+<!-- Ambient glows -->
+<div class="fixed inset-0 z-0 pointer-events-none">
+  <div class="absolute inset-0 animated-bg"></div>
+  <div class="absolute top-[-20%] left-[-10%] w-[600px] h-[600px] bg-cyan-500/8 rounded-full blur-[120px]"></div>
+  <div class="absolute bottom-[-20%] right-[-10%] w-[500px] h-[500px] bg-blue-600/8 rounded-full blur-[100px]"></div>
+</div>
+
+<!-- Main Wrapper -->
+<div class="relative z-10 flex flex-col min-h-screen">
+
+  <!-- HEADER -->
+  <header class="w-full pt-10 pb-4 px-6 md:px-12 flex flex-col items-center text-center space-y-5 fade-in">
+    <div class="flex items-center gap-3">
+      <span class="material-symbols-outlined text-[#00d4ff] text-5xl">lock_person</span>
+    </div>
+    <div class="max-w-3xl space-y-2">
+      <h1 class="text-4xl md:text-6xl font-black tracking-tight leading-tight">
+        <span class="text-white">Password</span> <span class="text-gradient">Analyzer AI</span>
+      </h1>
+      <p class="text-slate-400 text-lg font-medium tracking-wide">
+        Powered by Machine Learning — <span class="text-[#00d4ff]/80">Gradient Boosting Classifier</span>
+      </p>
+    </div>
+    <div class="flex flex-wrap gap-3 justify-center pt-1">
+      <a href="https://github.com/abderemaneattoumani/Password_Analyzer" target="_blank"
+         class="group flex items-center gap-2 px-5 py-2.5 rounded-lg bg-slate-800/50 border border-slate-700 hover:border-[#00d4ff]/50 transition-all duration-300">
+        <svg class="w-5 h-5 text-white group-hover:text-[#00d4ff] transition-colors" fill="currentColor" viewBox="0 0 24 24">
+          <path clip-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" fill-rule="evenodd"/>
+        </svg>
+        <span class="text-sm font-semibold text-slate-200 group-hover:text-white">GitHub</span>
+      </a>
+      <a href="https://colab.research.google.com/github/abderemaneattoumani/Password_Analyzer/blob/main/notebooks/04_demo_interactive.ipynb" target="_blank"
+         class="group flex items-center gap-2 px-5 py-2.5 rounded-lg bg-slate-800/50 border border-slate-700 hover:border-orange-500/50 transition-all duration-300">
+        <svg class="w-5 h-5 text-orange-400" fill="currentColor" viewBox="0 0 24 24">
+          <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm0 4.8c1.92 0 3.6.96 4.8 2.4l-2.4 2.4c-.6-.72-1.44-1.2-2.4-1.2-1.92 0-3.6 1.68-3.6 3.6s1.68 3.6 3.6 3.6c.96 0 1.8-.48 2.4-1.2l2.4 2.4c-1.2 1.44-2.88 2.4-4.8 2.4-3.96 0-7.2-3.24-7.2-7.2s3.24-7.2 7.2-7.2z"/>
+        </svg>
+        <span class="text-sm font-semibold text-slate-200 group-hover:text-white">Google Colab</span>
+      </a>
+    </div>
+  </header>
+
+  <!-- MAIN DASHBOARD -->
+  <main class="flex-grow w-full max-w-6xl mx-auto p-4 md:p-6 lg:p-8 grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+    <!-- LEFT COLUMN -->
+    <div class="lg:col-span-8 space-y-5 fade-in" style="transition-delay:0.1s">
+
+      <!-- Analyzer Card -->
+      <div class="glass-panel rounded-xl p-6 md:p-8 relative overflow-hidden">
+        <div class="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-[#00d4ff]/60 to-transparent"></div>
+
+        <div class="flex flex-col gap-6">
+          <!-- Input -->
+          <div>
+            <label class="block text-xs font-semibold text-[#00d4ff] mb-2 tracking-widest uppercase" for="password-input">
+              Password Analysis Input
+            </label>
+            <div class="relative">
+              <input
+                id="password-input"
+                type="password"
+                placeholder="Entrez un mot de passe..."
+                value=""
+                class="w-full bg-[#0f172a]/90 text-white text-lg placeholder:text-slate-600 border border-slate-700 rounded-lg pl-5 pr-14 py-4 font-mono tracking-wider transition-all duration-300"
+                autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
+              />
+              <button id="toggle-visibility" class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-[#00d4ff] transition-colors" title="Afficher/Masquer">
+                <span class="material-symbols-outlined" id="eye-icon">visibility</span>
+              </button>
+            </div>
+            <p class="text-xs text-slate-600 mt-2 flex items-center gap-1">
+              <span class="material-symbols-outlined text-[13px]">lock</span>
+              Analyse effectuée localement dans votre navigateur — aucune donnée envoyée.
+            </p>
+          </div>
+
+          <!-- Strength Meter + Gauge -->
+          <div class="flex flex-col md:flex-row gap-5 items-center">
+            <!-- Meter Bar -->
+            <div class="flex-1 w-full">
+              <div class="flex justify-between items-center mb-2">
+                <span class="text-sm text-slate-300 font-medium">Niveau de robustesse</span>
+                <span class="text-xs font-mono text-[#00d4ff]" id="score-label">Score: —</span>
+              </div>
+              <div class="flex gap-1.5 h-2.5 w-full">
+                <div class="seg" id="seg0"></div>
+                <div class="seg" id="seg1"></div>
+                <div class="seg" id="seg2"></div>
+                <div class="seg" id="seg3"></div>
+                <div class="seg" id="seg4"></div>
+              </div>
+            </div>
+
+            <!-- Circular Gauge -->
+            <div class="flex items-center gap-4 bg-slate-800/30 rounded-xl p-4 border border-slate-700/50 shrink-0">
+              <div class="relative w-20 h-20 flex items-center justify-center">
+                <svg class="w-full h-full transform -rotate-90" viewBox="0 0 64 64">
+                  <circle cx="32" cy="32" r="27" fill="transparent" stroke="#1e293b" stroke-width="6"/>
+                  <circle id="gauge-arc" cx="32" cy="32" r="27" fill="transparent"
+                    stroke="#00d4ff" stroke-width="6"
+                    stroke-dasharray="169.6" stroke-dashoffset="169.6"
+                    stroke-linecap="round"
+                    class="gauge-circle"
+                    style="filter: drop-shadow(0 0 4px rgba(0,212,255,0.8))"
+                  />
+                </svg>
+                <div class="absolute inset-0 flex flex-col items-center justify-center">
+                  <span class="text-xl font-bold text-white leading-none font-mono" id="gauge-value">—</span>
+                  <span class="text-[9px] text-slate-500 uppercase tracking-wider">Score</span>
+                </div>
+              </div>
+              <div class="flex flex-col gap-1">
+                <span class="text-[10px] text-slate-500 uppercase tracking-wider">Classification</span>
+                <span class="text-base font-bold text-white leading-tight" id="classification-label">—</span>
+                <span id="strength-badge"></span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Stats Grid -->
+      <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
+        <div class="glass-panel stat-card rounded-xl p-4 border border-slate-800">
+          <div class="flex items-start justify-between mb-2">
+            <span class="text-slate-400 text-xs uppercase tracking-wider font-semibold">Longueur</span>
+            <span class="material-symbols-outlined text-[#00d4ff] text-lg">straighten</span>
+          </div>
+          <div class="text-3xl font-bold text-white font-mono" id="stat-length">—</div>
+          <div class="text-xs text-slate-500 mt-1">caractères</div>
+        </div>
+        <div class="glass-panel stat-card rounded-xl p-4 border border-slate-800">
+          <div class="flex items-start justify-between mb-2">
+            <span class="text-slate-400 text-xs uppercase tracking-wider font-semibold">Entropie</span>
+            <span class="material-symbols-outlined text-[#00d4ff] text-lg">memory</span>
+          </div>
+          <div class="text-3xl font-bold text-white font-mono" id="stat-entropy">—</div>
+          <div class="text-xs text-slate-500 mt-1">bits</div>
+        </div>
+        <div class="glass-panel stat-card rounded-xl p-4 border border-slate-800">
+          <div class="flex items-start justify-between mb-2">
+            <span class="text-slate-400 text-xs uppercase tracking-wider font-semibold">Majuscules</span>
+            <span class="material-symbols-outlined text-[#00d4ff] text-lg">text_fields</span>
+          </div>
+          <div class="text-3xl font-bold text-white font-mono" id="stat-upper">—</div>
+          <div class="text-xs text-slate-500 mt-1">lettres</div>
+        </div>
+        <div class="glass-panel stat-card rounded-xl p-4 border border-slate-800">
+          <div class="flex items-start justify-between mb-2">
+            <span class="text-slate-400 text-xs uppercase tracking-wider font-semibold">Chiffres</span>
+            <span class="material-symbols-outlined text-[#00d4ff] text-lg">pin</span>
+          </div>
+          <div class="text-3xl font-bold text-white font-mono" id="stat-digits">—</div>
+          <div class="text-xs text-slate-500 mt-1">nombres</div>
+        </div>
+        <div class="glass-panel stat-card rounded-xl p-4 border border-slate-800">
+          <div class="flex items-start justify-between mb-2">
+            <span class="text-slate-400 text-xs uppercase tracking-wider font-semibold">Spéciaux</span>
+            <span class="material-symbols-outlined text-[#00d4ff] text-lg">alternate_email</span>
+          </div>
+          <div class="text-3xl font-bold text-white font-mono" id="stat-special">—</div>
+          <div class="text-xs text-slate-500 mt-1">symboles</div>
+        </div>
+        <div class="glass-panel stat-card rounded-xl p-4 border border-slate-800">
+          <div class="flex items-start justify-between mb-2">
+            <span class="text-slate-400 text-xs uppercase tracking-wider font-semibold">Uniques</span>
+            <span class="material-symbols-outlined text-[#00d4ff] text-lg">fingerprint</span>
+          </div>
+          <div class="text-3xl font-bold text-white font-mono" id="stat-unique">—</div>
+          <div class="text-xs text-slate-500 mt-1">caractères distincts</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT COLUMN -->
+    <div class="lg:col-span-4 flex flex-col gap-5 fade-in" style="transition-delay:0.2s">
+
+      <!-- Terminal Feedback -->
+      <div class="glass-panel rounded-xl overflow-hidden flex flex-col border border-slate-700/50 flex-1">
+        <!-- Terminal header -->
+        <div class="bg-[#0f172a] px-4 py-3 border-b border-slate-700/60 flex items-center justify-between shrink-0">
+          <span class="font-mono text-xs text-slate-500 flex items-center gap-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-red-500/80"></span>
+            <span class="w-2.5 h-2.5 rounded-full bg-yellow-500/80"></span>
+            <span class="w-2.5 h-2.5 rounded-full bg-green-500/80"></span>
+            <span class="ml-1 text-slate-600">analyzer_output.log</span>
+          </span>
+          <span id="terminal-badge"></span>
+        </div>
+
+        <!-- Terminal body -->
+        <div class="p-5 flex-1 flex flex-col gap-4 bg-[#0a0e1a]/60 overflow-y-auto">
+          <!-- Crack time -->
+          <div class="font-mono text-sm space-y-1.5">
+            <p class="text-slate-600">$ estimate_crack_time --mode=offline_fast</p>
+            <p class="text-[#00d4ff]">
+              Temps estimé: <span class="text-white font-bold" id="crack-time-value">—</span><span class="cursor text-[#00d4ff]">_</span>
+            </p>
+            <p class="text-slate-600 text-xs" id="crack-time-detail"></p>
+          </div>
+
+          <div class="h-px bg-slate-800 w-full"></div>
+
+          <!-- Patterns detected -->
+          <div>
+            <p class="text-[10px] text-slate-500 uppercase tracking-widest font-semibold mb-2">Patterns détectés</p>
+            <div id="patterns-list" class="space-y-1.5 text-xs font-mono">
+              <span class="text-slate-700 italic">Entrez un mot de passe...</span>
+            </div>
+          </div>
+
+          <div class="h-px bg-slate-800 w-full"></div>
+
+          <!-- Recommendations -->
+          <div>
+            <p class="text-[10px] text-slate-500 uppercase tracking-widest font-semibold mb-2">Recommandations IA</p>
+            <div id="recommendations" class="space-y-1">
+              <span class="text-slate-700 italic text-xs">En attente d'analyse...</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Download button -->
+        <div class="p-4 bg-[#0f172a] border-t border-slate-800 shrink-0">
+        <button id="download-btn" class="copy-btn w-full flex items-center justify-center gap-2 bg-[#00d4ff]/10 hover:bg-[#00d4ff]/20 text-[#00d4ff] border border-[#00d4ff]/40 hover:border-[#00d4ff] px-4 py-3 rounded-lg font-bold text-sm transition-all duration-300">
+            <span class="material-symbols-outlined text-lg" id="download-icon">download</span>
+            <span id="download-label">Télécharger le rapport</span>
+        </button>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- TECH STACK FOOTER (full width) -->
+    <div class="lg:col-span-12 fade-in" style="transition-delay:0.3s">
+      <div class="glass-panel rounded-xl p-5 border border-slate-800 flex flex-col md:flex-row items-center justify-between gap-6">
+        <div class="flex flex-wrap justify-center md:justify-start items-center gap-2">
+          <span class="text-slate-600 text-xs uppercase font-bold mr-1">Stack :</span>
+          <span class="badge badge-yellow">🐍 Python 3.11</span>
+          <span class="badge badge-orange">⚙️ scikit-learn</span>
+          <span class="badge badge-cyan">🤖 Gradient Boosting</span>
+          <span class="badge badge-cyan">🐼 pandas / numpy</span>
+          <span class="badge badge-green">🔐 zxcvbn</span>
+          <span class="badge badge-orange">📄 ReportLab</span>
+        </div>
+        <div class="flex items-center gap-0 divide-x divide-slate-700 shrink-0">
+          <div class="px-5 text-center">
+            <p class="text-2xl font-black text-white font-mono leading-none">50k</p>
+            <p class="text-[10px] uppercase text-slate-500 font-semibold mt-1">Mots de passe</p>
+          </div>
+          <div class="px-5 text-center">
+            <p class="text-2xl font-black text-white font-mono leading-none">14</p>
+            <p class="text-[10px] uppercase text-slate-500 font-semibold mt-1">Features</p>
+          </div>
+          <div class="px-5 text-center">
+            <p class="text-2xl font-black text-[#00d4ff] font-mono leading-none">66.94%</p>
+            <p class="text-[10px] uppercase text-slate-500 font-semibold mt-1">Accuracy CV</p>
+          </div>
+          <div class="px-5 text-center">
+            <p class="text-2xl font-black text-white font-mono leading-none">5</p>
+            <p class="text-[10px] uppercase text-slate-500 font-semibold mt-1">Niveaux</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- FOOTER -->
+  <footer class="w-full py-6 text-center border-t border-slate-800/40 mt-4 bg-[#0a0e1a]/80 backdrop-blur-sm">
+    <p class="text-sm text-slate-500">
+      Abderemane Attoumani —
+      <a class="text-[#00d4ff] hover:text-white transition-colors" href="https://github.com/abderemaneattoumani" target="_blank">
+        github.com/abderemaneattoumani
+      </a>
+    </p>
+    <p class="text-xs text-slate-700 mt-1">© 2026 Password Analyzer AI. All rights reserved.</p>
+  </footer>
+</div>
+
+<!-- ============================================================
+     JAVASCRIPT — LOGIQUE COMPLÈTE
+     ============================================================ -->
+<script>
+// ----------------------------------------------------------------
+// 1. PARTICLES BACKGROUND
+// ----------------------------------------------------------------
+(function initParticles() {
+  const canvas = document.getElementById('particles-canvas');
+  const ctx = canvas.getContext('2d');
+  let W, H, particles = [], mouse = { x: -9999, y: -9999 };
+  const N = 60, MAX_DIST = 120;
+
+  function resize() {
+    W = canvas.width  = window.innerWidth;
+    H = canvas.height = window.innerHeight;
+  }
+  resize();
+  window.addEventListener('resize', resize);
+  window.addEventListener('mousemove', e => { mouse.x = e.clientX; mouse.y = e.clientY; });
+
+  for (let i = 0; i < N; i++) {
+    particles.push({
+      x: Math.random() * window.innerWidth,
+      y: Math.random() * window.innerHeight,
+      vx: (Math.random() - 0.5) * 0.4,
+      vy: (Math.random() - 0.5) * 0.4,
+      r: Math.random() * 1.5 + 0.5
+    });
+  }
+
+  function draw() {
+    ctx.clearRect(0, 0, W, H);
+    particles.forEach(p => {
+      p.x += p.vx; p.y += p.vy;
+      if (p.x < 0) p.x = W; if (p.x > W) p.x = 0;
+      if (p.y < 0) p.y = H; if (p.y > H) p.y = 0;
+      // Mouse attraction
+      const dx = mouse.x - p.x, dy = mouse.y - p.y;
+      const dist = Math.sqrt(dx*dx + dy*dy);
+      if (dist < 150) { p.x += dx * 0.002; p.y += dy * 0.002; }
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.r, 0, Math.PI*2);
+      ctx.fillStyle = 'rgba(0,212,255,0.5)';
+      ctx.fill();
+    });
+    // Lines
+    for (let i = 0; i < N; i++) {
+      for (let j = i+1; j < N; j++) {
+        const dx = particles[i].x - particles[j].x;
+        const dy = particles[i].y - particles[j].y;
+        const d = Math.sqrt(dx*dx + dy*dy);
+        if (d < MAX_DIST) {
+          ctx.beginPath();
+          ctx.moveTo(particles[i].x, particles[i].y);
+          ctx.lineTo(particles[j].x, particles[j].y);
+          ctx.strokeStyle = `rgba(0,212,255,${0.15 * (1 - d/MAX_DIST)})`;
+          ctx.lineWidth = 0.5;
+          ctx.stroke();
+        }
+      }
+    }
+    requestAnimationFrame(draw);
+  }
+  draw();
+})();
+
+// ----------------------------------------------------------------
+// 2. FADE-IN ON LOAD
+// ----------------------------------------------------------------
+window.addEventListener('load', () => {
+  document.querySelectorAll('.fade-in').forEach((el, i) => {
+    setTimeout(() => el.classList.add('visible'), 100 + i * 120);
+  });
+  // Auto-analyze empty state
+  analyzePassword('');
+});
+
+// ----------------------------------------------------------------
+// 3. CORE ANALYSIS ENGINE
+// ----------------------------------------------------------------
+function getCharsetSize(pwd) {
+  let n = 0;
+  if (/[a-z]/.test(pwd)) n += 26;
+  if (/[A-Z]/.test(pwd)) n += 26;
+  if (/[0-9]/.test(pwd)) n += 10;
+  if (/[^a-zA-Z0-9]/.test(pwd)) n += 32;
+  return Math.max(n, 1);
+}
+
+function calcEntropy(pwd) {
+  if (!pwd.length) return 0;
+  const N = getCharsetSize(pwd);
+  return Math.log2(N) * pwd.length;
+}
+
+function estimateCrackTime(entropy) {
+  // 10 billion hashes/sec (offline fast — bcrypt would be much slower)
+  const RATE = 1e10;
+  const seconds = Math.pow(2, entropy) / RATE;
+  return seconds;
+}
+
+function formatCrackTime(seconds) {
+  if (seconds < 0.001) return { display: '< 1 milliseconde', detail: 'Cracké instantanément' };
+  if (seconds < 1)     return { display: '< 1 seconde',       detail: 'Attaque en force brute triviale' };
+  if (seconds < 60)    return { display: Math.round(seconds) + ' secondes', detail: 'Cracké en quelques secondes' };
+  if (seconds < 3600)  return { display: Math.round(seconds/60) + ' minutes', detail: 'Cracké en quelques minutes' };
+  if (seconds < 86400) return { display: Math.round(seconds/3600) + ' heures', detail: 'Cracké en quelques heures' };
+  if (seconds < 86400*365) return { display: Math.round(seconds/86400) + ' jours', detail: 'Cracké en quelques jours' };
+  const years = seconds / (86400*365);
+  if (years < 1000)    return { display: Math.round(years) + ' ans', detail: 'Résistance correcte' };
+  if (years < 1e6)     return { display: Math.round(years/100)/10 + ' siècles', detail: 'Très haute résistance' };
+  if (years < 1e9)     return { display: Math.round(years/1e6) + ' millions d\'années', detail: 'Résistance extrême' };
+  return { display: 'Millénaires', detail: 'Incraquable dans ce siècle' };
+}
+
+function getScore(pwd) {
+  if (!pwd) return -1;
+  const len = pwd.length;
+  const hasUpper   = /[A-Z]/.test(pwd);
+  const hasLower   = /[a-z]/.test(pwd);
+  const hasDigit   = /[0-9]/.test(pwd);
+  const hasSpecial = /[^a-zA-Z0-9]/.test(pwd);
+  const unique     = new Set(pwd).size;
+  const entropy    = calcEntropy(pwd);
+
+  // Patterns faibles
+  const isAllSame    = unique === 1;
+  const hasSeqNum    = /012|123|234|345|456|567|678|789|890/.test(pwd);
+  const hasKeyboard  = /qwerty|azerty|qwert|asdf|zxcv/i.test(pwd);
+
+  if (isAllSame || hasKeyboard || len <= 3) return 0;
+  if (entropy < 20) return 0;
+
+  let score = 0;
+  if (len >= 16) score += 4; else if (len >= 12) score += 3; else if (len >= 10) score += 2; else if (len >= 8) score += 1;
+  if (hasUpper && hasLower) score += 1;
+  if (hasDigit) score += 1;
+  if (hasSpecial) score += 2;
+  if (unique / len >= 0.8) score += 1;
+  if (hasSeqNum) score -= 1;
+
+  if (score <= 1) return 0;
+  if (score <= 3) return 1;
+  if (score <= 5) return 2;
+  if (score <= 7) return 3;
+  return 4;
+}
+
+function detectPatterns(pwd) {
+  const patterns = [];
+  if (!pwd) return patterns;
+  if (/012|123|234|345|456|567|678|789|890/.test(pwd))
+    patterns.push({ type: 'warn', text: 'Séquence numérique détectée (123...)' });
+  if (/abc|bcd|cde|def|efg|fgh|ghi|hij|ijk|jkl|klm|lmn|mno|nop|opq|pqr|qrs|rst|stu|tuv|uvw|vwx|wxy|xyz/i.test(pwd))
+    patterns.push({ type: 'warn', text: 'Séquence alphabétique (abc...)' });
+  if (/qwerty|azerty|qwert|asdf|zxcv/i.test(pwd))
+    patterns.push({ type: 'danger', text: 'Pattern clavier (qwerty/azerty)' });
+  if (new Set(pwd).size === 1)
+    patterns.push({ type: 'danger', text: 'Caractère unique répété' });
+  if (/(19|20)\d{2}/.test(pwd))
+    patterns.push({ type: 'warn', text: 'Année détectée (date de naissance ?)' });
+  if (/password|motdepasse|admin|login|welcome/i.test(pwd))
+    patterns.push({ type: 'danger', text: 'Mot de passe commun détecté' });
+  if (/[^a-zA-Z0-9]$/.test(pwd) === false && /[0-9]$/.test(pwd))
+    patterns.push({ type: 'info', text: 'Se termine par un chiffre (prévisible)' });
+  if (patterns.length === 0)
+    patterns.push({ type: 'ok', text: 'Aucun pattern faible détecté ✓' });
+  return patterns;
+}
+
+function getRecommendations(pwd) {
+  if (!pwd) return [];
+  const recos = [];
+  const hasUpper   = /[A-Z]/.test(pwd);
+  const hasLower   = /[a-z]/.test(pwd);
+  const hasDigit   = /[0-9]/.test(pwd);
+  const hasSpecial = /[^a-zA-Z0-9]/.test(pwd);
+  const hasSeq     = /012|123|234|345|456|567|678|789|qwerty|azerty/i.test(pwd);
+
+  if (pwd.length < 12)  recos.push({ ok: false, text: 'Allonge à 12+ caractères (tu as ' + pwd.length + ')' });
+  else                  recos.push({ ok: true,  text: 'Bonne longueur (' + pwd.length + ' caractères)' });
+
+  if (!hasUpper)        recos.push({ ok: false, text: 'Ajoute des majuscules (A-Z)' });
+  else                  recos.push({ ok: true,  text: 'Majuscules présentes' });
+
+  if (!hasLower)        recos.push({ ok: false, text: 'Ajoute des minuscules (a-z)' });
+
+  if (!hasDigit)        recos.push({ ok: false, text: 'Ajoute des chiffres (0-9)' });
+  else                  recos.push({ ok: true,  text: 'Chiffres présents' });
+
+  if (!hasSpecial)      recos.push({ ok: false, text: 'Ajoute des caractères spéciaux (!@#$...)' });
+  else                  recos.push({ ok: true,  text: 'Caractères spéciaux présents' });
+
+  if (hasSeq)           recos.push({ ok: false, text: 'Évite les séquences prévisibles (123, abc, qwerty...)' });
+
+  return recos;
+}
+
+// ----------------------------------------------------------------
+// 4. DOM UPDATE FUNCTIONS
+// ----------------------------------------------------------------
+const LEVELS = [
+  { label: 'Très faible', badgeClass: 'badge-red',    color: '#ef4444', emoji: '🔴' },
+  { label: 'Faible',      badgeClass: 'badge-orange',  color: '#f97316', emoji: '🟠' },
+  { label: 'Moyen',       badgeClass: 'badge-yellow',  color: '#eab308', emoji: '🟡' },
+  { label: 'Fort',        badgeClass: 'badge-green',   color: '#22c55e', emoji: '🟢' },
+  { label: 'Très fort',   badgeClass: 'badge-cyan',    color: '#00d4ff', emoji: '✅' },
+];
+
+function updateStrengthBar(score) {
+  for (let i = 0; i < 5; i++) {
+    const seg = document.getElementById('seg' + i);
+    seg.className = 'seg';
+    if (score >= 0 && i <= score) seg.classList.add('active-' + score);
+  }
+}
+
+function updateGauge(score) {
+  const arc = document.getElementById('gauge-arc');
+  const total = 169.6; // 2 * PI * 27
+  const pct = score < 0 ? 0 : (score + 1) / 5;
+  arc.style.strokeDashoffset = total * (1 - pct);
+  // Color
+  const colors = ['#ef4444','#f97316','#eab308','#22c55e','#00d4ff'];
+  arc.style.stroke = score >= 0 ? colors[score] : '#1e293b';
+  arc.style.filter = score >= 0 ? `drop-shadow(0 0 5px ${colors[score]}80)` : 'none';
+}
+
+function analyzePassword(pwd) {
+  const score    = getScore(pwd);
+  const entropy  = calcEntropy(pwd);
+  const crackSec = estimateCrackTime(entropy);
+  const crack    = formatCrackTime(crackSec);
+  const patterns = detectPatterns(pwd);
+  const recos    = getRecommendations(pwd);
+  const level    = score >= 0 ? LEVELS[score] : null;
+
+  // Stats
+  document.getElementById('stat-length').textContent  = pwd.length || '—';
+  document.getElementById('stat-entropy').textContent  = pwd.length ? entropy.toFixed(1) : '—';
+  document.getElementById('stat-upper').textContent    = pwd.length ? (pwd.match(/[A-Z]/g)||[]).length : '—';
+  document.getElementById('stat-digits').textContent   = pwd.length ? (pwd.match(/[0-9]/g)||[]).length : '—';
+  document.getElementById('stat-special').textContent  = pwd.length ? (pwd.match(/[^a-zA-Z0-9]/g)||[]).length : '—';
+  document.getElementById('stat-unique').textContent   = pwd.length ? new Set(pwd).size : '—';
+
+  // Score label
+  document.getElementById('score-label').textContent = pwd.length ? `Score: ${score}/4` : 'Score: —';
+
+  // Strength bar
+  updateStrengthBar(score);
+
+  // Gauge
+  updateGauge(score);
+
+  // Classification
+  document.getElementById('gauge-value').textContent       = pwd.length ? score : '—';
+  document.getElementById('classification-label').textContent = level ? level.label : '—';
+
+  // Strength badge (gauge area)
+  const sbEl = document.getElementById('strength-badge');
+  sbEl.innerHTML = level ? `<span class="badge ${level.badgeClass}">${level.emoji} ${level.label}</span>` : '';
+
+  // Terminal badge
+  const tbEl = document.getElementById('terminal-badge');
+  tbEl.innerHTML = level
+    ? `<span class="badge ${level.badgeClass}">${level.emoji} ${level.label}</span>`
+    : '<span class="badge" style="border-color:#334155;color:#64748b">— Attente</span>';
+
+  // Crack time
+  document.getElementById('crack-time-value').textContent = pwd.length ? crack.display : '—';
+  document.getElementById('crack-time-detail').textContent = pwd.length ? crack.detail : '';
+
+  // Patterns
+  const pEl = document.getElementById('patterns-list');
+  if (!pwd.length) {
+    pEl.innerHTML = '<span class="text-slate-700 italic">Entrez un mot de passe...</span>';
+  } else {
+    pEl.innerHTML = patterns.map(p => {
+      const icons = { danger:'<span class="text-red-400">✗</span>', warn:'<span class="text-yellow-400">⚠</span>', ok:'<span class="text-green-400">✓</span>', info:'<span class="text-blue-400">ℹ</span>' };
+      const colors = { danger:'text-red-300', warn:'text-yellow-300', ok:'text-green-400', info:'text-blue-300' };
+      return `<div class="flex gap-2 items-start ${colors[p.type]}">${icons[p.type]} <span>${p.text}</span></div>`;
+    }).join('');
+  }
+
+  // Recommendations
+  const rEl = document.getElementById('recommendations');
+  if (!pwd.length) {
+    rEl.innerHTML = '<span class="text-slate-700 italic text-xs">En attente d\'analyse...</span>';
+  } else {
+    rEl.innerHTML = recos.map(r => `
+      <div class="reco-item">
+        <span class="material-symbols-outlined text-base shrink-0" style="color:${r.ok ? '#4ade80' : '#f87171'}">${r.ok ? 'check_circle' : 'cancel'}</span>
+        <span class="${r.ok ? 'text-green-400' : 'text-red-300'}">${r.text}</span>
+      </div>
+    `).join('');
+    if (recos.every(r => r.ok)) {
+      rEl.innerHTML += '<div class="reco-item"><span class="material-symbols-outlined text-base text-[#00d4ff]">verified</span><span class="text-[#00d4ff] font-semibold">Excellent mot de passe !</span></div>';
+    }
+  }
+
+  // Store for copy
+  window._lastAnalysis = { pwd, score, entropy, crack, patterns, recos, level };
+}
+
+// ----------------------------------------------------------------
+// 5. EVENT LISTENERS
+// ----------------------------------------------------------------
+
+// Real-time input analysis
+document.getElementById('password-input').addEventListener('input', function() {
+  analyzePassword(this.value);
+});
+
+// Toggle visibility
+document.getElementById('toggle-visibility').addEventListener('click', function() {
+  const input = document.getElementById('password-input');
+  const icon  = document.getElementById('eye-icon');
+  if (input.type === 'password') {
+    input.type = 'text';
+    icon.textContent = 'visibility_off';
+  } else {
+    input.type = 'password';
+    icon.textContent = 'visibility';
+  }
+});
+
+// Download report
+document.getElementById('download-btn').addEventListener('click', function() {
+  const a = window._lastAnalysis;
+  if (!a || !a.pwd) {
+    alert('Entrez d\'abord un mot de passe à analyser.');
+    return;
+  }
+
+  const now = new Date().toLocaleString('fr-FR');
+  const separator = '═'.repeat(50);
+  const thin      = '─'.repeat(50);
+
+  const report = [
+    separator,
+    '   PASSWORD ANALYZER AI — RAPPORT D\'ANALYSE',
+    separator,
+    '',
+    `  Date         : ${now}`,
+    `  Longueur     : ${a.pwd.length} caractères`,
+    `  Entropie     : ${a.entropy.toFixed(2)} bits`,
+    `  Score        : ${a.score}/4`,
+    `  Niveau       : ${a.level ? a.level.emoji + ' ' + a.level.label : '—'}`,
+    `  Temps crack  : ${a.crack.display}`,
+    `  Détail       : ${a.crack.detail}`,
+    '',
+    thin,
+    '  PATTERNS DÉTECTÉS',
+    thin,
+    ...a.patterns.map(p => `  [${p.type.toUpperCase().padEnd(6)}] ${p.text}`),
+    '',
+    thin,
+    '  RECOMMANDATIONS',
+    thin,
+    ...a.recos.map(r => `  [${r.ok ? '  OK  ' : ' FIX  '}] ${r.text}`),
+    '',
+    separator,
+    '  Généré par Password Analyzer AI',
+    '  github.com/abderemaneattoumani/Password_Analyzer',
+    separator,
+  ].join('\n');
+
+  // Génération et téléchargement du fichier
+  const blob = new Blob([report], { type: 'text/plain;charset=utf-8' });
+  const url  = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  const timestamp = new Date().toISOString().slice(0,19).replace(/[:T]/g, '-');
+  link.href     = url;
+  link.download = `analyse_motdepasse_${timestamp}.txt`;
+  link.click();
+  URL.revokeObjectURL(url);
+
+  // Feedback visuel
+  const btn   = document.getElementById('download-btn');
+  const icon  = document.getElementById('download-icon');
+  const label = document.getElementById('download-label');
+  btn.classList.add('copied');
+  icon.textContent  = 'check_circle';
+  label.textContent = 'Rapport téléchargé !';
+  setTimeout(() => {
+    btn.classList.remove('copied');
+    icon.textContent  = 'download';
+    label.textContent = 'Télécharger le rapport';
+  }, 2500);
+});
+
+</script>
+</body>
+</html>
