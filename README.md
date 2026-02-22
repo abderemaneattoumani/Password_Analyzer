@@ -69,9 +69,9 @@ python src/report_generator.py
 ```
 
 ## 🌐 Interface Web
-Ouvre `interface/index.html` dans ton navigateur — aucune installation requise.
-## ☁️ Démonstration interactive
+Ouvrir `interface/index.html` dans votre navigateur — aucune installation requise.
 
+## ☁️ Démonstration interactive
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/abderemaneattoumani/Password_Analyzer/blob/main/notebooks/04_demo_interactive.ipynb)
 
 Le notebook Google Colab permet de tester l'analyseur 
