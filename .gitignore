@@ -1,0 +1,24 @@
+# Environnement Python
+venv/
+__pycache__/
+*.pyc
+*.pyo
+.env
+
+# Données sensibles (trop lourdes ou contiennent de vrais mots de passe)
+data/raw/
+data/processed/
+
+# Modèle (trop lourd pour GitHub)
+models/password_model.pkl
+
+# Fichiers système Windows
+Thumbs.db
+desktop.ini
+$RECYCLE.BIN/
+
+# VS Code
+.vscode/
+
+# Rapport PDF (généré automatiquement, pas besoin de le versionner)
+reports/rapport_final.pdf
