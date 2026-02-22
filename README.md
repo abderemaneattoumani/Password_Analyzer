@@ -36,13 +36,14 @@ réels issus de la fuite RockYou (2009).
 ## 🗂️ Structure du projet
 ```
 Password_Analyzer/
-├── data/samples/          # Échantillon anonymisé (sans mots de passe réels)
-├── notebooks/             # Jupyter Notebooks d'analyse
+├── data/samples/              # Échantillon anonymisé (sans mots de passe réels)
+├── interface/index.html       # Site web
+├── notebooks/                 # Jupyter Notebooks d'analyse
 ├── src/
 │   ├── password_features.py   # Extraction de features
 │   ├── model_trainer.py       # Entraînement du modèle
 │   └── report_generator.py    # Génération du rapport PDF
-├── reports/figures/       # Graphiques générés
+├── reports/figures/           # Graphiques générés
 ├── requirements.txt
 └── README.md
 ```
@@ -67,6 +68,8 @@ python src/model_trainer.py
 python src/report_generator.py
 ```
 
+## 🌐 Interface Web
+Ouvre `interface/index.html` dans ton navigateur — aucune installation requise.
 ## ☁️ Démonstration interactive
 
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/abderemaneattoumani/Password_Analyzer/blob/main/notebooks/04_demo_interactive.ipynb)
