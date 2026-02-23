@@ -104,7 +104,7 @@ sans aucune installation locale.
 
 ## 👤 Auteur
 
-**[Ton Prénom Nom]**  
+**[Abderemane Attoumani]**  
 GitHub : [@abderemaneattoumani](https://github.com/abderemaneattoumani)
 
 ---
